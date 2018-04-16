@@ -3,7 +3,7 @@ from random import uniform
 from haversine import haversine
 import pants
 import csv
-import os
+import os, sys
 import requests
 from urllib.parse import quote
 import matplotlib.pyplot as plt
@@ -13,8 +13,13 @@ import networkx as nx
 CSV_FILENAME = "open_pubs.csv"
 #CSV_FILENAME = "london_pubs.csv"
 USE_MILES_UNIT = False #if false, will use Kilometers
-GOOGLE_API_TOKEN = ""
-NUMBER_NODES = 1000
+try:
+	GOOGLE_API_TOKEN = os.environ['GOOGLE_API_TOKEN']
+except:
+	print("You need to define the GOOGLE_API_TOKEN env variable to use GOOGLE GEOLOC API")
+	sys.exit(1)
+
+NUMBER_NODES = os.getenv('NUMBER_NODES', 0)
 
 nodes = []
 def calcul_distance(a, b):
@@ -85,14 +90,6 @@ G.add_edges_from(nodes)
 nx.draw(G)
 plt.show()
 print("Finished the graph")
-
-
-file = open('Failed.list', 'w')
-for t in nodes:
-	file.write('|'.join([str(v) for v in t]))
-	file.write('\n')
-file.close()
-
 
 #Code
 
