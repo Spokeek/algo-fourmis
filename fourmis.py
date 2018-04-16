@@ -125,7 +125,6 @@ for i, latLong in enumerate(positionCenterCamera):
 	positionCenterCamera[i] = latLong / movesLength
 
 positionCamera = positionCenterCamera if MAP_CENTER else solution.tour[0]
-positionCamera = positionCenterCamera if MAP_CENTER else solution.tour[0]
 mapZoom = 7 if MAP_CENTER else 15
 
 htmlTemplate = re.sub(r'([{}])(?![{} &])', r'\1\1', htmlTemplate)
