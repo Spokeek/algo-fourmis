@@ -7,7 +7,8 @@ import os, sys
 import requests
 from urllib.parse import quote
 import matplotlib.pyplot as plt
-import networkx as nx
+import base64
+import re
 
 #Constants
 CSV_FILENAME = "open_pubs.csv"
@@ -19,7 +20,10 @@ except:
 	print("You need to define the GOOGLE_API_TOKEN env variable to use GOOGLE GEOLOC API")
 	sys.exit(1)
 
-NUMBER_NODES = os.getenv('NUMBER_NODES', 0)
+NUMBER_NODES = int(os.getenv('NUMBER_NODES', 0))
+
+MAP_CENTER = os.getenv('MAP_CENTER', False)
+MAP_CENTER = MAP_CENTER in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh']
 
 nodes = []
 def calcul_distance(a, b):
@@ -84,13 +88,6 @@ else:
 	print("Temp file load finished")
 
 
-print("Create the graph")
-G=nx.Graph()
-G.add_edges_from(nodes)
-nx.draw(G)
-plt.show()
-print("Finished the graph")
-
 #Code
 
 print("Creating world")
@@ -103,11 +100,41 @@ print("Finished creating solver")
 
 print("Starting solving world")
 solutions = solver.solutions(world)
-print("Finished solving world")
-
 best = float("inf")
+solution = None
 for solution in solutions:
 	if solution.distance < best:
 		best = solution.distance
+		solution = solution
+print("Finished solving world")
 
 print("the best distance is {} {}".format(round(best, 3), "miles" if USE_MILES_UNIT else "km"))
+
+print("Generating the map")
+
+htmlTemplate = "PCFET0NUWVBFIGh0bWw+DQo8aHRtbD4NCiAgPGhlYWQ+DQogICAgPG1ldGEgbmFtZT0idmlld3BvcnQiIGNvbnRlbnQ9ImluaXRpYWwtc2NhbGU9MS4wLCB1c2VyLXNjYWxhYmxlPW5vIj4NCiAgICA8bWV0YSBjaGFyc2V0PSJ1dGYtOCI+DQogICAgPHRpdGxlPlNpbXBsZSBQb2x5bGluZXM8L3RpdGxlPg0KICAgIDxzdHlsZT4NCiAgICAgICNtYXAgew0KICAgICAgICBoZWlnaHQ6IDEwMCU7DQogICAgICB9DQogICAgICBodG1sLCBib2R5IHsNCiAgICAgICAgaGVpZ2h0OiAxMDAlOw0KICAgICAgICBtYXJnaW46IDA7DQogICAgICAgIHBhZGRpbmc6IDA7DQogICAgICB9DQogICAgPC9zdHlsZT4NCiAgPC9oZWFkPg0KICA8Ym9keT4NCiAgICA8ZGl2IGlkPSJtYXAiPjwvZGl2Pg0KICAgIDxzY3JpcHQ+DQoJdmFyIHZhbHVlcyA9IHt9IDsNCglmdW5jdGlvbiBpbml0TWFwKCkgew0KICAgICAgICB2YXIgbWFwID0gbmV3IGdvb2dsZS5tYXBzLk1hcChkb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnbWFwJyksIHsNCiAgICAgICAgICB6b29tOiB7fSAsDQogICAgICAgICAgY2VudGVyOiB7bGF0OiB7fSAsIGxuZzoge30gfSwNCiAgICAgICAgICBtYXBUeXBlSWQ6ICd0ZXJyYWluJw0KICAgICAgICB9KTsNCgkJDQoJCXZhciBmbGlnaHRQbGFuQ29vcmRpbmF0ZXMgPSB2YWx1ZXMubWFwKHYgPT4gKHtsYXQ6IHZbMF0sIGxuZzogdlsxXX0pKQ0KICAgICAgICB2YXIgZmxpZ2h0UGF0aCA9IG5ldyBnb29nbGUubWFwcy5Qb2x5bGluZSh7DQogICAgICAgICAgcGF0aDogZmxpZ2h0UGxhbkNvb3JkaW5hdGVzLA0KICAgICAgICAgIGdlb2Rlc2ljOiB0cnVlLA0KICAgICAgICAgIHN0cm9rZUNvbG9yOiAnI0ZGMDAwMCcsDQogICAgICAgICAgc3Ryb2tlT3BhY2l0eTogMS4wLA0KICAgICAgICAgIHN0cm9rZVdlaWdodDogMg0KICAgICAgICB9KTsNCg0KCXZhciBtYXJrZXJzID0gdmFsdWVzLm1hcCgodixpKSA9PiAobmV3IGdvb2dsZS5tYXBzLk1hcmtlcih7DQogICAgICAgICAgcG9zaXRpb246IHtsYXQ6IHZbMF0gLCBsbmc6IHZbMV0gfSwNCiAgICAgICAgICBtYXA6IG1hcCwNCiAgICAgICAgICB0aXRsZTogKCh2YWx1ZSwgaW5kZXgsIHZhbHVlcykgPT4ge30gKSh2LCBpLCAgdmFsdWVzKQ0KICAgICAgICB9KSkpOw0KDQogICAgICAgIGZsaWdodFBhdGguc2V0TWFwKG1hcCk7DQogICAgICB9DQogICAgPC9zY3JpcHQ+DQogICAgPHNjcmlwdCBhc3luYyBkZWZlcg0KICAgIHNyYz0iaHR0cHM6Ly9tYXBzLmdvb2dsZWFwaXMuY29tL21hcHMvYXBpL2pzP2tleT17fSZjYWxsYmFjaz1pbml0TWFwIj4NCgk8L3NjcmlwdD4NCiAgPC9ib2R5Pg0KPC9odG1sPg0K"
+htmlTemplate = base64.b64decode(htmlTemplate).decode("utf-8")
+
+moves = "[{}]".format(','.join(("[{},{}]".format(move[0], move[1])) for move in solution.tour))
+positionCenterCamera = [0,0]
+for point in solution.tour:
+	for i, latLong in enumerate(positionCenterCamera):
+		positionCenterCamera[i] = latLong + point[i]
+movesLength = len(solution.tour)
+for i, latLong in enumerate(positionCenterCamera):
+	positionCenterCamera[i] = latLong / movesLength
+
+positionCamera = positionCenterCamera if MAP_CENTER else solution.tour[0]
+positionCamera = positionCenterCamera if MAP_CENTER else solution.tour[0]
+mapZoom = 7 if MAP_CENTER else 15
+
+htmlTemplate = re.sub(r'([{}])(?![{} &])', r'\1\1', htmlTemplate)
+htmlTemplate = htmlTemplate.format(moves, mapZoom, positionCamera[0], positionCamera[1], "`Point numero ${index + 1} / ${values.length}`", GOOGLE_API_TOKEN)
+
+with open('data/map.html', 'w', newline='') as html:
+	html.write(htmlTemplate)
+
+print("Map generated")
+print("Starting map")
+
+os.system("start ./data/map.html")
