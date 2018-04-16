@@ -9,8 +9,11 @@ import base64 # to save the HTML template in the code
 import re # to manipulate Regular Expressions
 
 #Constants
-CSV_FILENAME = os.getenv('NUMBER_NODES', 'open_pubs.csv') # data file
-USE_MILES_UNIT = False #if false, will use Kilometers
+def strIsTrue(str):
+	return str.lower() in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh']
+
+CSV_FILENAME = os.getenv('CSV_FILENAME', 'open_pubs.csv') # data file
+USE_MILES_UNIT = strIsTrue(os.getenv('USE_MILES_UNIT', "false")) #if false, will use Kilometers
 
 try:
 	GOOGLE_API_TOKEN = os.environ['GOOGLE_API_TOKEN']
@@ -18,10 +21,9 @@ except:
 	print("You need to define the GOOGLE_API_TOKEN env variable to use GOOGLE GEOLOC API")
 	sys.exit(1)
 
-NUMBER_NODES = int(os.getenv('NUMBER_NODES', 0)) # define the number of nodes to use in the process ( to reduce time calculation for tests )
+NUMBER_NODES = int(os.getenv('NUMBER_NODES', 150)) # define the number of nodes to use in the process ( to reduce time calculation for tests )
 
-MAP_CENTER = os.getenv('MAP_CENTER', False) # If true, the map will be centered around the nodes positions, else it will focus on the first node.
-MAP_CENTER = MAP_CENTER in ['true', '1', 't', 'y', 'yes', 'yeah', 'yup', 'certainly', 'uh-huh']
+MAP_CENTER = strIsTrue(os.getenv('MAP_CENTER', "false")) # If true, the map will be centered around the nodes positions, else it will focus on the first node.
 
 nodes = []
 
@@ -126,7 +128,7 @@ if MAP_CENTER: # We search for the map camera position in center
 		positionCenterCamera[i] = latLong / movesLength
 
 positionCamera = positionCenterCamera if MAP_CENTER else solution.tour[0] # If needed we will put the gmap camera
-	mapZoom = 7 if MAP_CENTER else 15 # If we use a centered camera, we zoom on the country ( 7 ) else we do it on the street ( 15 )
+mapZoom = 7 if MAP_CENTER else 15 # If we use a centered camera, we zoom on the country ( 7 ) else we do it on the street ( 15 )
 
 htmlTemplate = re.sub(r'([{}])(?![{} &])', r'\1\1', htmlTemplate) # We use a Regular Expression to transform "{" to "{{" to use the string into a str.format function
 htmlTemplate = htmlTemplate.format(moves, mapZoom, positionCamera[0], positionCamera[1], "`Point numero ${index + 1} / ${values.length}`", GOOGLE_API_TOKEN) # We pass our needed parameters (JS array of moves, zoom, cameraX, cameraY, JS function body applied for each node (value, index, values), Google Token API)
