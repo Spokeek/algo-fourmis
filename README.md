@@ -14,4 +14,11 @@
 |MAP_CENTER|no|True|Center the camera on the HTML output page.
 |USE_MILES_UNIT|no|False|Display the distance in Miles, else it would be in Kilometers
 
+When the application opens a HTML page, this means that the application has finished the optimization.
+You can no use several controls to navigate through the points:
+- n => move to the next point
+- p => move to the  previous point
+- g => display a prompt to access to a specific point
+- h => display the help
+
 This is only a school project, soooo, don't use this in production ^^.
